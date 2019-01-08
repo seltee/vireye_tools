@@ -3,6 +3,11 @@
 #include <vector>
 
 enum {
+	ELF_TYPE_OBJECT = 1,
+	ELF_TYPE_EXECUTABLE = 2
+};
+
+enum {
 	SECTION_TYPE_NONE = 0,
 	SECTION_TYPE_CODE,
 	SECTION_TYPE_ROM,
@@ -22,6 +27,13 @@ struct Symbol {
 	char q;
 	unsigned int size;
 	unsigned int value;
+	unsigned int inSectionShift;
+};
+
+struct SectionInfo{
+	unsigned int sectionNumber;
+	unsigned int startShift;
+
 };
 
 struct Relocation {
@@ -48,5 +60,6 @@ public:
 	unsigned char *ram;
 	unsigned int ramSize;
 	unsigned int zeroRamSize;
+	unsigned int elfType;
 };
 

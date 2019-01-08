@@ -1,35 +1,31 @@
 #include "./core.h"
-#include "./test_helper.h"
-#include "./sprites.h"
 
-SpriteArray view;
+uint8 sprites[800];
+int c = 0;
+int dir = 3;
+const uint16 pallette[] = {0x0000, 0x07e0, 0xffff, 0x7a7a};
 
 int32 main(){
-	displayVideoMode(VIDEO_MODE_SPRITE320x240_DOUBLE_SIZED);
+	dSetSpriteMemory(sprites, 800);
+	dSetPalette(pallette, COLOR_FORMAT_RGB565, 3);
+	dSetFPS(30);
 	
-	uint8 field[3*3];
-	
-	view.sprites = sprites2;
-	view.field = field;
-	
-	int summer = 1;
-	int position = 0;
-
-	//while(1){
-		logi((int)field);
-		randomBuilder(field, position);
-		position+=summer;
-
-		if (position > 320 - 36){
-			summer = -1;
+	while (1) {
+		c += dir;
+		if (c > 200){
+			dir = -1;
 		}
-		if (position < 0){
-			summer = 1;
+		if (c < 0){
+			dir = 1;
 		}
+		dDisplayText("HELLO WORLD", 2, 10, c);
+		dDisplayText("HELLO PEOPLE", 2, 10, c+24);
 		
-		displaySpriteArray(&view, 6, position, 0, 3, 3);
-		displaySync();
-	//}
+		int8 string[16];
+		hItoa(dGetFPS(), string);
+		dDisplayText(string, 3, 100, 10);
 		
+		dSync();
+	}
 	return 0;
 }

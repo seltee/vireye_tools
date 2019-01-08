@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		else {
-			if (length > 4 && argv[i][length - 1] == 'e' && argv[i][length - 2] == 'c' && argv[i][length - 3] == 's' && argv[i][length - 4] == '.') {
+			if (length > 4 && argv[i][length - 1] == 'x' && argv[i][length - 2] == 'e' && argv[i][length - 3] == 'v' && argv[i][length - 4] == '.') {
 				if (!name) {
 					name = argv[i];
 				}else {
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
 	if (!error) {
 		if (!name) {
-			name = "out.sce";
+			name = "out.vex";
 		}
 
 		printf("Program summary:\n");
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 		printf("Errors are found, can't link\n");
 	}
 		
-	system("pause");
+	//system("pause");
     return 0;
 }
 

@@ -60,7 +60,6 @@ ElfReader::ElfReader()
 	zeroRamSize = 0;
 }
 
-
 ElfReader::~ElfReader()
 {
 }
@@ -69,8 +68,8 @@ bool ElfReader::read(char *fileName) {
 	printf("\nReading %s\n", fileName);
 	FILE *file = fopen(fileName, "r");
 	if (file) {
-		char megaFile[64 * 1024];
-		fread(megaFile, 64 * 1024, 1, file);
+		char *megaFile = new char[1024 * 1024];
+		fread(megaFile, 1024 * 1024, 1, file);
 		fclose(file);
 
 		//checking file
@@ -85,7 +84,7 @@ bool ElfReader::read(char *fileName) {
 		printf("info %i %i %i %i %i %i %i\n", header.e_type, header.e_machine, header.e_phoff, header.e_shoff, header.e_phnum, header.e_shnum, header.e_shstrndx);
 		int nameTable = header.e_shstrndx;
 
-		if (header.e_type != 1) {
+		if (header.e_type != ELF_TYPE_OBJECT && header.e_type != ELF_TYPE_EXECUTABLE) {
 			printf("It's not an object file\n");
 			return false;
 		}
@@ -95,10 +94,12 @@ bool ElfReader::read(char *fileName) {
 			return false;
 		}
 
-		if (header.e_phnum != 0) {
+		if (header.e_phnum != 0 && header.e_phnum != 1) {
 			printf("We don't know what to do with this\n");
 			return false;
 		}
+
+		elfType = header.e_type;
 
 		//initializing reader
 		Elf32Section *sections = new Elf32Section[header.e_shnum];
@@ -120,21 +121,29 @@ bool ElfReader::read(char *fileName) {
 		unsigned int fileZeroRamSize = 0;
 
 		unsigned char codeSectionNumber = 0;
-		unsigned char rodataSectionNumber = 0;
+
+		SectionInfo rodataSections[32];
+		unsigned char rodatasSectionCount = 0;
+
 		unsigned char zeroRamSectionNumber = 0;
 		unsigned char initRamSectionNumber = 0;
 
+		
+
 		for (int i = 0; i < header.e_shnum; i++) {
+			printf("Section %i\n", i);
 			memcpy(&sections[i], &megaFile[header.e_shoff + i * sizeof(Elf32Section)], sizeof(Elf32Section));
-			//printf("%i - %i %i %i %i\n", i, sections[i].sh_name, sections[i].sh_offset, sections[i].sh_type, sections[i].sh_offset);
+			printf("%i - %i %i %i %i\n", i, sections[i].sh_name, sections[i].sh_offset, sections[i].sh_type, sections[i].sh_offset);
 			if (i == nameTable) {
 				namesSection = &sections[i];
 			}
 		}
 
+		printf("parsing file\n");
 		//parsing file
 		for (int i = 0; i < header.e_shnum; i++) {
 			if (sections[i].sh_type != 0) {
+				printf("SECTION %i %i %i\n", i, namesSection->sh_offset, sections[i].sh_name);
 				char buff[128];
 				strcpy(buff, &megaFile[namesSection->sh_offset + sections[i].sh_name]);
 				printf("parsing %i - %s (type %i, size %i, shift %i)\n", i, buff, sections[i].sh_type, sections[i].sh_size, sections[i].sh_offset);
@@ -151,10 +160,18 @@ bool ElfReader::read(char *fileName) {
 				//rodata section
 				if (sections[i].sh_type == 1 && buff[1] == 'r'  && buff[2] == 'o'  && buff[3] == 'd'  && buff[4] == 'a'  && buff[5] == 't'  && buff[6] == 'a') {
 					printf("- Rodata\n");
-					fileRodataSize = sections[i].sh_size;
-					fileRodata = new unsigned char[fileRodataSize];
-					memcpy(fileRodata, &megaFile[sections[i].sh_offset], fileRodataSize);
-					rodataSectionNumber = i;
+					unsigned int newRodataSize = sections[i].sh_size;
+					unsigned char *newFileRodata = new unsigned char[fileRodataSize + newRodataSize];
+					if (fileRodata) {
+						memcpy(newFileRodata, fileRodata, fileRodataSize);
+					}
+					memcpy(newFileRodata + fileRodataSize, &megaFile[sections[i].sh_offset], newRodataSize);
+					rodataSections[rodatasSectionCount].sectionNumber = i;
+					rodataSections[rodatasSectionCount].startShift = fileRodataSize;
+
+					fileRodataSize += newRodataSize;
+					rodatasSectionCount++;
+					fileRodata = newFileRodata;
 				}
 
 				//initialized ram section
@@ -222,7 +239,7 @@ bool ElfReader::read(char *fileName) {
 		printf("\n");
 
 		//saving symbols
-		if (symsCount) {
+		if (symsCount && header.e_type == ELF_TYPE_OBJECT) {
 			printf("Symbol parsing\n");
 			for (int i = 0; i < symsCount; i++) {
 				Symbol *newSym = new Symbol();
@@ -237,15 +254,20 @@ bool ElfReader::read(char *fileName) {
 				newSym->size = syms[i].st_size;
 				newSym->value = syms[i].st_value;
 				newSym->sectionType = SECTION_TYPE_NONE;
+				newSym->inSectionShift = 0;
 
-				printf("symbol %i - %s %i %i %i %i, %i %i\n", i, newSym->name, newSym->bind, newSym->type, newSym->size, newSym->value, newSym->sectionType, syms[i].st_other);
+				printf("symbol %i - %s %i %i %i %i, %i %i %i\n", i, newSym->name, newSym->bind, newSym->type, newSym->size, newSym->value, newSym->sectionType, syms[i].st_other, syms[i].st_shndx);
 
 				if (syms[i].st_shndx) {
 					if (syms[i].st_shndx == codeSectionNumber)
 						newSym->sectionType = SECTION_TYPE_CODE;
 
-					if (syms[i].st_shndx == rodataSectionNumber)
-						newSym->sectionType = SECTION_TYPE_ROM;
+					for (int r = 0; r < rodatasSectionCount; r++) {
+						if (rodataSections[r].sectionNumber == syms[i].st_shndx) {
+							newSym->sectionType = SECTION_TYPE_ROM;
+							newSym->inSectionShift = rodataSections[r].startShift;
+						}
+					}
 
 					if (syms[i].st_shndx == zeroRamSectionNumber)
 						newSym->sectionType = SECTION_TYPE_ZERO_RAM;

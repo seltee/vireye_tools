@@ -6,16 +6,25 @@
 #define CODE_BLOCK_SIZE (4 * 1024)
 
 std::string coreFunctions[] = {
-	"logs",
-	"logi",
-	"displayVideoMode",
-	"displaySprite",
-	"displaySpriteMask",
-	"displaySpriteArray",
-	"displaySync",
-	"inputState",
-	"memset"
+	"dSetLineClear",
+	"detFillColor",
+	"dSetSpriteMemory",
+	"dDisplaySprite",
+	"dDisplaySpriteMask",
+	"dDisplaySpriteMatrix",
+	"dDisplayText",
+	"dSync",
+	"dGetFPS",
+	"dSetFPS",
+	"dSetPalette",
+	"iGetState",
+	"iGetXAxis",
+	"iGetYAxis",
+	"hCmp",
+	"hItoa",
+	"hMemcpy"
 };
+
 const int coreFunctionCount = sizeof(coreFunctions) / sizeof(std::string);
 
 Saver::Saver()
@@ -55,40 +64,39 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 		saveRelocation->shift = rel->offset;
 		saveRelocation->bind = rel->symbol->bind;
 		saveRelocation->source = source;
+		saveRelocation->nameShift = 0;
 
 		if (foundedSym->sectionType == SECTION_TYPE_NONE) {
 			saveRelocation->type = SAVE_SECTION_TYPE_LIB;
-			saveRelocation->nameShift = symNameSize;
-			char buff[256];
-			sprintf(buff, "core.%s", foundedSym->name);
-			memcpy(symNameTable + symNameSize, buff, strlen(buff) + 1);
-			symNameSize += strlen(buff) + 1;
+			if (foundedSym->name) {
+				saveRelocation->nameShift = symNameSize;
+				char buff[256];
+				sprintf(buff, "cr.%s", foundedSym->name);
+				memcpy(symNameTable + symNameSize, buff, strlen(buff) + 1);
+				symNameSize += strlen(buff) + 1;
+			}
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_CODE) {
 			printf("CODE CODE CODE %i %i %i %i\n", foundedSym->name, foundedSym->value, foundedSym->segmentCodeShift, (foundedSym->value & 0xfffffffe) + foundedSym->segmentCodeShift);
 			saveRelocation->type = SAVE_SECTION_TYPE_CODE;
 			saveRelocation->targetShift = (foundedSym->value & 0xfffffffe) + foundedSym->segmentCodeShift;
-			saveRelocation->nameShift = 0;
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_ROM) {
 			printf("ROM ROM ROM\n");
 			saveRelocation->type = SAVE_SECTION_TYPE_ROM;
-			saveRelocation->targetShift = foundedSym->value + foundedSym->segmentRomShift;
-			saveRelocation->nameShift = 0;
+			saveRelocation->targetShift = foundedSym->value + foundedSym->segmentRomShift + foundedSym->inSectionShift;
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_INITED_RAM) {
 			saveRelocation->type = SAVE_SECTION_TYPE_RAM;
 			saveRelocation->targetShift = foundedSym->value + foundedSym->segmentRamShift;
-			saveRelocation->nameShift = 0;
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_ZERO_RAM) {
 			saveRelocation->type = SAVE_SECTION_TYPE_RAM;
 			saveRelocation->targetShift = reader->ramSize + foundedSym->value + foundedSym->segmentZeroRamShift;
-			saveRelocation->nameShift = 0;
 		}
 	}
 
@@ -97,25 +105,31 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 
 bool Saver::save(const char *filename, ElfReader *reader) {
 	FILE *f = fopen(filename, "wb");
+	if (!f) {
+		printf("Can't open file %s\n", filename);
+		return false;
+	}
 
 	SaveMainHeader saveMainHeader;
 	SaveUsualHeader saveUsualHeader;
 	SaveCodePartHeader saveCodePartHeader;
 	
+	// Searching for entry
 	int entry = -1;
 	for (int i = 0; i < reader->symbols.size(); i++) {
 		if (reader->symbols.at(i)->name && strcmp(reader->symbols.at(i)->name, "main") == 0) {
 			entry = reader->symbols.at(i)->segmentCodeShift + reader->symbols.at(i)->value & 0xfffffffe;
 		}
 	}
-	if (!entry == -1) {
+	if (entry == -1) {
 		printf("Entry not found\n");
 		fclose(f);
 		return false;
 	}
+	printf("Entry %i\n", entry);
 
-	//file header
-	memcpy(saveMainHeader.mark, "WUMC", 4);
+	// Making file header
+	memcpy(saveMainHeader.mark, "VEEX", 4);
 	saveMainHeader.version = VERSION;
 	saveMainHeader.subVersion = SUB_VERSION;
 	saveMainHeader.architecture = ARHITECTURE_THUMB;
@@ -124,7 +138,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	saveMainHeader.romSize = reader->rodataSize;
 	saveMainHeader.codeSize = reader->codeSize;
 	saveMainHeader.entry = entry;
-	fwrite(&saveMainHeader, sizeof(SaveMainHeader), 1, f);
+	fwrite(&saveMainHeader, 1, sizeof(SaveMainHeader), f);
 
 	unsigned int numOfBlocks = (reader->codeSize / CODE_BLOCK_SIZE) + 1;
 
@@ -134,7 +148,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	saveUsualHeader.version = 0;
 	fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
 
-	symNameTable = new unsigned char[4 * 1024];
+	symNameTable = new unsigned char[CODE_BLOCK_SIZE];
 	int c;
 	for (int block = 0; block < numOfBlocks; block++) {
 		int blockSize = (block == numOfBlocks - 1) ? reader->codeSize - block * CODE_BLOCK_SIZE : CODE_BLOCK_SIZE;

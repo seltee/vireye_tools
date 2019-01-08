@@ -1,1 +1,9 @@
 .vs/
+Debug/
+*.iobj
+*.ipdb
+*.obj
+*.pdb
+*.idb
+*.log
+*.tlog
