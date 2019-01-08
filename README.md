@@ -1,9 +1,15 @@
-Vireye linker gets object files and transfomes it into .sce file, that can be loaded by vireye core (currently in dev)
+### This is tools for homebrew game console Vireye. 
 
-### Basic usage:
-```
-clang++ --target=thumb -mthumb -mfloat-abi=soft -fdeclspec -c -m32 -Os test.cpp test_helper.cpp
-linker test.o test_helper.o test.sce
-```
+More infomation about this: https://github.com/seltee/vireye_core
 
-Test program may be found in Debug folder
+### Linker
+
+Linker is the program, that gets .o files and combines them into .vex file. This format is executable of Vireye console. The main reason to use own format is to load 48 kb games with using of only 16 kb of ram.
+
+### Patcher
+
+This program used to combite core hex firmware for mcu with .vex file. Then you can upload core with program to your board through swd.
+
+See command line example in release/build.bat, also there is a hello world program. 
+
+You also need to install clang++ and STM32 ST-LINK Utility to use it.
