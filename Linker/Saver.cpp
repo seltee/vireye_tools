@@ -10,7 +10,8 @@ std::string coreFunctions[] = {
 	"detFillColor",
 	"dSetSpriteMemory",
 	"dDisplaySprite",
-	"dDisplaySpriteMask",
+	"dDisplaySpriteBitMask",
+	"dDisplaySpriteByteMask",
 	"dDisplaySpriteMatrix",
 	"dDisplayText",
 	"dSync",
@@ -20,9 +21,19 @@ std::string coreFunctions[] = {
 	"iGetState",
 	"iGetXAxis",
 	"iGetYAxis",
+	"fsInit",
+	"fsReadDir",
+	"fsReadNextFile",
+	"fsReadFile",
+	"fsRead",
+	"fsSeek",
+	"fsClose",
 	"hCmp",
-	"hItoa",
-	"hMemcpy"
+	"itoa",
+	"sRun",
+	"memset",
+	"memcpy",
+	"strlen"
 };
 
 const int coreFunctionCount = sizeof(coreFunctions) / sizeof(std::string);
@@ -71,7 +82,7 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 			if (foundedSym->name) {
 				saveRelocation->nameShift = symNameSize;
 				char buff[256];
-				sprintf(buff, "cr.%s", foundedSym->name);
+				sprintf(buff, "c.%s", foundedSym->name);
 				memcpy(symNameTable + symNameSize, buff, strlen(buff) + 1);
 				symNameSize += strlen(buff) + 1;
 			}
@@ -143,7 +154,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	unsigned int numOfBlocks = (reader->codeSize / CODE_BLOCK_SIZE) + 1;
 
 	saveUsualHeader.type = SAVE_BLOCK_TYPE_CODE_PART;
-	saveUsualHeader.headerSize = sizeof(SaveCodePartHeader);
+	saveUsualHeader.reserved = 0;
 	saveUsualHeader.size = numOfBlocks;
 	saveUsualHeader.version = 0;
 	fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
@@ -206,7 +217,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	//saving rodata
 	saveUsualHeader.type = SAVE_BLOCK_TYPE_RODATA;
 	saveUsualHeader.version = 0;
-	saveUsualHeader.headerSize = 0;
+	saveUsualHeader.reserved = 0;
 	saveUsualHeader.size = reader->rodataSize;
 	fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
 
@@ -215,7 +226,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	//saving ram
 	saveUsualHeader.type = SAVE_BLOCK_TYPE_RAM;
 	saveUsualHeader.version = 0;
-	saveUsualHeader.headerSize = 0;
+	saveUsualHeader.reserved = 0;
 	saveUsualHeader.size = reader->ramSize;
 	fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
 
@@ -242,7 +253,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 		printf("SAVING RAM RELOCATIONS %i\n", saveRamRelocations.size());
 		saveUsualHeader.type = SAVE_BLOCK_TYPE_RAM_RELOCATION;
 		saveUsualHeader.version = 0;
-		saveUsualHeader.headerSize = 0;
+		saveUsualHeader.reserved = 0;
 		saveUsualHeader.size = saveRamRelocations.size();
 		fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
 
@@ -256,7 +267,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 
 	saveUsualHeader.type = SAVE_BLOCK_TYPE_END;
 	saveUsualHeader.version = 0;
-	saveUsualHeader.headerSize = 0;
+	saveUsualHeader.reserved = 0;
 	saveUsualHeader.size = 0;
 	fwrite(&saveUsualHeader, sizeof(SaveUsualHeader), 1, f);
 

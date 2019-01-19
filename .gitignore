@@ -3,6 +3,7 @@ Debug/
 *.iobj
 *.ipdb
 *.obj
+*.o
 *.pdb
 *.idb
 *.log

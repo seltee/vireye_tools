@@ -13,3 +13,7 @@ This program used to combite core hex firmware for mcu with .vex file. Then you 
 See command line example in release/build.bat, also there is a hello world program. 
 
 You also need to install clang++ and STM32 ST-LINK Utility to use it.
+
+### Runner
+
+It's a program to run other programs for the system. After compile put autorun.vex on your SD card.

@@ -61,10 +61,12 @@ int main(int argc, char *argv[])
 		}
 		else {
 			printf("Unable to save due to errors\n");
+			return 1;
 		}
 	}
 	else {
 		printf("Errors are found, can't link\n");
+		return 1;
 	}
 		
 	//system("pause");

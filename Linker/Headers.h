@@ -9,15 +9,19 @@
 #define SAVE_BLOCK_TYPE_SYMTABLE 5
 #define SAVE_BLOCK_TYPE_CODE_PART 6
 #define SAVE_BLOCK_TYPE_RAM_RELOCATION 7
+#define SAVE_BLOCK_TYPE_PROGRAM_NAME 8
 
 #define SAVE_SOURCE_UNKNOWN 0
 #define SAVE_SOURCE_CODE 1
 #define SAVE_SOURCE_RAM 2
 
-#define ARHITECTURE_UNKNOWN 0
-#define ARHITECTURE_THUMB 1
+enum Arhitecture {
+	ARHITECTURE_UNKNOWN = 0,
+	ARHITECTURE_THUMB = 1,
+	ARHITECTURE_ARM = 2
+};
 
-enum {
+enum SaveSectionType {
 	SAVE_SECTION_TYPE_UNKNOWN = 0,
 	SAVE_SECTION_TYPE_CODE,
 	SAVE_SECTION_TYPE_ROM,
@@ -30,7 +34,7 @@ struct SaveMainHeader {
 	unsigned char version;
 	unsigned char subVersion;
 	unsigned char architecture;
-	unsigned char r1;
+	unsigned char reserved;
 	unsigned int maxCodeBlockSize;
 	unsigned int ramSize;
 	unsigned int codeSize;
@@ -41,7 +45,7 @@ struct SaveMainHeader {
 struct SaveUsualHeader {
 	unsigned char type;
 	unsigned char version;
-	unsigned short headerSize;
+	unsigned short reserved;
 	unsigned int size;
 };
 
