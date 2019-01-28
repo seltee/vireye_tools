@@ -30,7 +30,7 @@ std::string coreFunctions[] = {
 	"fsWrite",
 	"fsClose",
 	"hCmp",
-	"itoa",
+	"hItoa",
 	"sRun",
 	"memset",
 	"memcpy",
