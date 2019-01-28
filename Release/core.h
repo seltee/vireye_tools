@@ -15,9 +15,7 @@ struct Matrix{
 };
 
 struct DirectoryReader{
-	int currentCluster;
-	unsigned short sectorShift;
-	unsigned short inSectorShift;
+	char data[12];
 };
 
 struct FileInfo{
@@ -45,18 +43,7 @@ struct FileInfo{
 };
 
 struct FileWorker{
-	int startCluster;
-	int currentCluster;
-	unsigned short sectorShift;
-	unsigned short inSectorShift;
-	unsigned int fileSize;
-	char *buffer;
-	unsigned int readed;
-	unsigned char mode;
-	unsigned char r1;
-	unsigned char r2;
-	unsigned char r3;
-	unsigned int reserved;
+	char data[32];
 };
 
 enum FillColor{
@@ -152,8 +139,14 @@ SYS_FN bool fsReadNextFile(int8 *fileName, int32 fileNameMaxLength, DirectoryRea
 // Open file for reading
 SYS_FN bool fsReadFile(int8 *filePath, FileWorker *fileWorker);
 
+// Open file for writing
+SYS_FN bool fsWriteFile(int8 *filePath, FileWorker *fileWorker);
+
 // Read data from file to buffer. In return you will get bytes actually readed
 SYS_FN uint32 fsRead(FileWorker *fileWorker, void *dst, uint32 length);
+
+// Write data to file from buffer. In return you will get bytes actually writed
+SYS_FN uint32 fsWrite(FileWorker *fileWorker, void *src, uint32 length);
 
 // Close file after read
 SYS_FN bool fsClose(FileWorker *fileWorker);
@@ -161,7 +154,7 @@ SYS_FN bool fsClose(FileWorker *fileWorker);
 
 // HELPERS
 // Compares two strings 
-SYS_FN int16 hCmp(const int8 *str1, const int8 *str2);
+SYS_FN bool hCmp(const int8 *str1, const int8 *str2);
 
 // Converts integer to string
 SYS_FN void hItoa(int32 n, int8 str1[]);

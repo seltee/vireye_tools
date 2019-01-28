@@ -23,7 +23,6 @@ void updateFolder(){
 	fsReadDir(path, &dirReader);
 	fCount = 0;
 	while(fsReadNextFile(files[fCount].name, 15, &dirReader, &fileInfo)){
-		
 		if (fCount < 64 && !(fileInfo.flags & FILE_FLAG_HIDDEN) && !hCmp(".", files[fCount].name)){
 			files[fCount].type = fileInfo.fileType;
 			fCount++;

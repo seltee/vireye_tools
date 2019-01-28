@@ -1,5 +1,6 @@
 .vs/
 Debug/
+Runner/vireye_core_patched.hex
 *.iobj
 *.ipdb
 *.obj
