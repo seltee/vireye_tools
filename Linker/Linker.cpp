@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
 	if (!error) {
 		if (!name) {
 			name = "out.vex";
@@ -68,8 +67,6 @@ int main(int argc, char *argv[])
 		printf("Errors are found, can't link\n");
 		return 1;
 	}
-		
-	//system("pause");
     return 0;
 }
 

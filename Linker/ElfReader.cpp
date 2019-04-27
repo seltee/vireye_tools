@@ -339,5 +339,6 @@ bool ElfReader::read(char *fileName) {
 
 		return true;
 	}
+	printf("Failed opening file\n");
 	return false;
 }

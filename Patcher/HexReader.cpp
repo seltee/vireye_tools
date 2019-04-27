@@ -14,8 +14,8 @@ bool HexReader::read(char *fileName) {
 	normalStringSize = 0;
 
 	if (file) {
-		char *megaFile = new char[1024 * 1024];
-		fread(megaFile, 1024 * 1024, 1, file);
+		char *megaFile = new char[64 * 1024];
+		fread(megaFile, 1, 64 * 1024, file);
 		fclose(file);
 
 		char *reader = megaFile;
@@ -39,6 +39,7 @@ bool HexReader::read(char *fileName) {
 
 				records.push_back(record);
 				if (record->type == 1) {
+					printf("Readed size %i\n", reader - megaFile);
 					return true;
 				}
 				if (record->type == 0 && normalStringSize == 0) {
@@ -55,6 +56,7 @@ bool HexReader::read(char *fileName) {
 			}
 		}
 	}
+	return false;
 }
 
 unsigned char HexReader::getByte(char *str) {

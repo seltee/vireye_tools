@@ -23,37 +23,52 @@ int main(int argc, char *argv[])
 		if (length > 4 && argv[i][length - 1] == 'x' && argv[i][length - 2] == 'e' && argv[i][length - 3] == 'h' && argv[i][length - 4] == '.') {
 			if (core) {
 				target = argv[i];
-				printf("Is target\n");
 			}
 			else {
 				core = argv[i];
-				printf("Is Core\n");
 			}
 		}
 
 		if (length > 4 && argv[i][length - 1] == 'x' && argv[i][length - 2] == 'e' && argv[i][length - 3] == 'v' && argv[i][length - 4] == '.') {
 			program = argv[i];
-			printf("Is Program\n");
 		}
 
 	}
 
+
 	if (core && target && program) {
 		if (reader.read(core)) {
-			printf("Readed successfull\n");
+			printf("Core loaded successfull, opening %s\n", program);
 
 			FILE *programFile = fopen(program, "rb");
+			printf("File opened\n");
 			if (!programFile) {
 				printf("Can't read program file %s\n", program);
-				system("pause");
 				return 0;
 			}
 
-			char *programData = new char[1024 * 1024];
-			unsigned int programSize = fread(programData, 1, 1024 * 1024, programFile);
+			printf("Allocating buffer ...\n");
+			char *programData = new char[64 * 1024];
+			if (!programData) {
+				printf("Can't get memory buffer\n");
+				return 0;
+			}
+
+			printf("Reading ...\n");
+			unsigned int programSize = fread(programData, 1, 64*1024, programFile);
+			printf("Readed\n");
+
+			if (!programSize) {
+				printf("Have read 0 bytes from file. Failed");
+				return 0;
+			}
+			printf("PROGRAM size %i\n", programSize);
+
 			unsigned int bytesPerRecord = reader.normalStringSize;
 
 			fclose(programFile);
+
+			printf("Program loaded ...\n");
 
 			int iterator = 0;
 			while (1) {
@@ -68,6 +83,8 @@ int main(int argc, char *argv[])
 					return 0;
 				}
 			}
+
+			printf("Hex vector builded ...\n");
 
 			iterator--;
 			HexRecord *rec = reader.records.at(iterator);
@@ -87,6 +104,8 @@ int main(int argc, char *argv[])
 			}
 			iterator++;
 
+			printf("Data normalized ...\n");
+
 			unsigned short cAddress = rec->address;
 			while (1) {
 				cAddress += bytesPerRecord;
@@ -105,7 +124,6 @@ int main(int argc, char *argv[])
 				iterator++;
 			}
 
-			printf("PROGRAM size %i\n", programSize);
 			unsigned int additionalRecords = programSize / bytesPerRecord + ((programSize % bytesPerRecord) ? 1 : 0);
 			for (int i = 0; i < additionalRecords; i++) {
 				unsigned int left = programSize - i*bytesPerRecord;

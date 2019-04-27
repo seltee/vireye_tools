@@ -3,6 +3,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerWorkingDirectory>$(TargetDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>test.o test.vex</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>runner.o runner.vex</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

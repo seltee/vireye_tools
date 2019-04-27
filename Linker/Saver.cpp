@@ -15,7 +15,6 @@ std::string coreFunctions[] = {
 	"dDisplaySpriteMatrix",
 	"dDisplayText",
 	"dSync",
-	"dGetFPS",
 	"dSetFPS",
 	"dSetPalette",
 	"iGetState",
@@ -29,12 +28,14 @@ std::string coreFunctions[] = {
 	"fsRead",
 	"fsWrite",
 	"fsClose",
+	"sndEnableSoundMono",
+	"sndDisableSound",
 	"hCmp",
 	"hItoa",
 	"sRun",
 	"memset",
 	"memcpy",
-	"strlen"
+	"strlen",
 };
 
 const int coreFunctionCount = sizeof(coreFunctions) / sizeof(std::string);
@@ -90,13 +91,13 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_CODE) {
-			printf("CODE CODE CODE %i %i %i %i\n", foundedSym->name, foundedSym->value, foundedSym->segmentCodeShift, (foundedSym->value & 0xfffffffe) + foundedSym->segmentCodeShift);
+			printf("CODE %i %i %i\n", foundedSym->name, foundedSym->value, rel->offset);
 			saveRelocation->type = SAVE_SECTION_TYPE_CODE;
 			saveRelocation->targetShift = (foundedSym->value & 0xfffffffe) + foundedSym->segmentCodeShift;
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_ROM) {
-			printf("ROM ROM ROM\n");
+			printf("ROM \n");
 			saveRelocation->type = SAVE_SECTION_TYPE_ROM;
 			saveRelocation->targetShift = foundedSym->value + foundedSym->segmentRomShift + foundedSym->inSectionShift;
 		}
@@ -180,7 +181,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 					saveRelocations.push_back(saveRel);
 				}
 				else {
-					printf("Relocation error, unknown symbol %s\n", rel->symbol->name);
+					printf("Relocation error, unknown symbol '%s'\n", rel->symbol->name);
 					fclose(f);
 					return false;
 				}
