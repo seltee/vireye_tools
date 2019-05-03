@@ -48,14 +48,14 @@ int main(int argc, char *argv[])
 			}
 
 			printf("Allocating buffer ...\n");
-			char *programData = new char[64 * 1024];
+			char *programData = new char[128 * 1024];
 			if (!programData) {
 				printf("Can't get memory buffer\n");
 				return 0;
 			}
 
 			printf("Reading ...\n");
-			unsigned int programSize = fread(programData, 1, 64*1024, programFile);
+			unsigned int programSize = fread(programData, 1, 128*1024, programFile);
 			printf("Readed\n");
 
 			if (!programSize) {
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 			unsigned short cAddress = rec->address;
 			while (1) {
 				cAddress += bytesPerRecord;
-				if (cAddress >= 16 * 1024) {
+				if (cAddress >= 24 * 1024) {
 					break;
 				}
 				HexRecord *rec = new HexRecord();

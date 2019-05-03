@@ -6,36 +6,45 @@
 #define CODE_BLOCK_SIZE (4 * 1024)
 
 std::string coreFunctions[] = {
-	"dSetLineClear",
-	"detFillColor",
-	"dSetSpriteMemory",
-	"dDisplaySprite",
-	"dDisplaySpriteBitMask",
-	"dDisplaySpriteByteMask",
-	"dDisplaySpriteMatrix",
-	"dDisplayText",
-	"dSync",
-	"dSetFPS",
-	"dSetPalette",
-	"iGetState",
-	"iGetXAxis",
-	"iGetYAxis",
-	"fsInit",
-	"fsReadDir",
-	"fsReadNextFile",
-	"fsReadFile",
-	"fsWriteFile",
-	"fsRead",
-	"fsWrite",
-	"fsClose",
-	"sndEnableSoundMono",
-	"sndDisableSound",
-	"hCmp",
-	"hItoa",
-	"sRun",
+	"setLineClear",
+	"setFillColor",
+	"setSpriteMemory",
+	"displaySprite",
+	"displaySpriteBitMask",
+	"displaySpriteByteMask",
+	"displaySpriteMatrix",
+	"displayText",
+	"sync",
+	"setFPS",
+	"setPalette",
+	"getButtonState",
+	"getXAxis",
+	"getYAxis",
+	"setFSMemory",
+	"readDir",
+	"readNextFile",
+	"openToRead",
+	"openToWrite",
+	"readFile",
+	"writeFile",
+	"seekFile",
+	"closeFile",
+	"enableSoundMono",
+	"disableSound",
+	"getConfig",
+	"applyConfig",
+	"saveConfig",
+	"cmp",
+	"itoa",
+	"run",
 	"memset",
 	"memcpy",
 	"strlen",
+	"rand",
+	"__umodsi3",
+	"__modsi3",
+	"__udivsi3",
+	"__divsi3",
 };
 
 const int coreFunctionCount = sizeof(coreFunctions) / sizeof(std::string);
@@ -72,7 +81,6 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 
 	SaveRelocation *saveRelocation = 0;
 	if (foundedSym) {
-		printf("RELOCATION %i %s\n", foundedSym->sectionType, foundedSym->name);
 		saveRelocation = new SaveRelocation();
 		saveRelocation->shift = rel->offset;
 		saveRelocation->bind = rel->symbol->bind;
@@ -91,13 +99,11 @@ SaveRelocation *Saver::createRelocation(Relocation *rel, ElfReader *reader, int 
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_CODE) {
-			printf("CODE %i %i %i\n", foundedSym->name, foundedSym->value, rel->offset);
 			saveRelocation->type = SAVE_SECTION_TYPE_CODE;
 			saveRelocation->targetShift = (foundedSym->value & 0xfffffffe) + foundedSym->segmentCodeShift;
 		}
 
 		if (foundedSym->sectionType == SECTION_TYPE_ROM) {
-			printf("ROM \n");
 			saveRelocation->type = SAVE_SECTION_TYPE_ROM;
 			saveRelocation->targetShift = foundedSym->value + foundedSym->segmentRomShift + foundedSym->inSectionShift;
 		}
@@ -139,7 +145,6 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 		fclose(f);
 		return false;
 	}
-	printf("Entry %i\n", entry);
 
 	// Making file header
 	memcpy(saveMainHeader.mark, "VEEX", 4);
@@ -171,28 +176,26 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 		std::vector<SaveRelocation*> saveRelocations;
 
 		for (int i = 0; i < reader->relocations.size(); i++) {
+
 			Relocation *rel = reader->relocations.at(i);
 			Symbol *foundedSym;
 			if (rel->offset >= globalShift && rel->offset < globalShift + blockSize && rel->relocationTarget == SECTION_TYPE_CODE) {
-				printf("Rel %s %i %i %i %i\n", rel->symbol->name, rel->offset, rel->symbol->bind, rel->symbol->type, rel->symbol->sectionType);
-
 				SaveRelocation *saveRel = createRelocation(rel, reader, SAVE_SOURCE_CODE);
 				if (saveRel) {
 					saveRelocations.push_back(saveRel);
-				}
-				else {
-					printf("Relocation error, unknown symbol '%s'\n", rel->symbol->name);
+				} else {
+					if (rel->symbol && rel->symbol->name) {
+						printf("CAN'T CREATE RELOCATION FOR %s\n", rel->symbol->name);
+					}
+					else {
+						printf("CAN'T CREATE RELOCATION\n");
+					}
+					
 					fclose(f);
 					return false;
 				}
 			}			
 		}
-
-		//printf("final of block %i\n\n", block);
-		//for (int i = 0; i < saveRelocations.size(); i++) {
-		//	SaveRelocation *saveRelocation = saveRelocations.at(i);
-		//	printf("%i - %s %i %i %i\n", i, saveRelocation->type == SAVE_SECTION_TYPE_LIB ? (const char *)(symNameTable + saveRelocation->nameShift) : "NoName", saveRelocation->type, saveRelocation->shift, saveRelocation->targetShift);
-		//}
 
 		//saving header
 		saveCodePartHeader.codeLength = blockSize;
@@ -239,9 +242,7 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	for (int i = 0; i < reader->relocations.size(); i++) {
 		Relocation *rel = reader->relocations.at(i);
 		if (rel->relocationTarget == SECTION_TYPE_INITED_RAM) {
-			printf("Create relocation\n");
 			SaveRelocation *saveRel = createRelocation(rel, reader, SAVE_SOURCE_RAM);
-			printf("Done\n");
 			if (saveRel) {
 				saveRamRelocations.push_back(saveRel);
 			}
@@ -252,7 +253,6 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 	}
 
 	if (saveRamRelocations.size() > 0) {
-		printf("SAVING RAM RELOCATIONS %i\n", saveRamRelocations.size());
 		saveUsualHeader.type = SAVE_BLOCK_TYPE_RAM_RELOCATION;
 		saveUsualHeader.version = 0;
 		saveUsualHeader.reserved = 0;
@@ -263,9 +263,6 @@ bool Saver::save(const char *filename, ElfReader *reader) {
 			fwrite(saveRamRelocations.at(i), 1, sizeof(SaveRelocation), f);
 		}
 	}
-
-
-	//saveUsualHeader.type = SAVE_BLOCK_TYPE_RAM;
 
 	saveUsualHeader.type = SAVE_BLOCK_TYPE_END;
 	saveUsualHeader.version = 0;

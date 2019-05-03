@@ -16,10 +16,6 @@ int main(int argc, char *argv[])
 	const char *name = 0;
 
 	for (int i = 1; i < argc; i++) {
-		printf("%i - %s\n", i, argv[i]);
-	}
-
-	for (int i = 1; i < argc; i++) {
 		int length = strlen(argv[i]);
 		if (length > 2 && argv[i][length - 1] == 'o' && argv[i][length - 2] == '.') {
 			if (!reader.read(argv[i]) || !reader.code) {

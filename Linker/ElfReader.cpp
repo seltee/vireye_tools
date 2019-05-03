@@ -81,7 +81,6 @@ bool ElfReader::read(char *fileName) {
 			return false;
 		}
 
-		printf("info %i %i %i %i %i %i %i\n", header.e_type, header.e_machine, header.e_phoff, header.e_shoff, header.e_phnum, header.e_shnum, header.e_shstrndx);
 		int nameTable = header.e_shstrndx;
 
 		if (header.e_type != ELF_TYPE_OBJECT && header.e_type != ELF_TYPE_EXECUTABLE) {
@@ -129,28 +128,21 @@ bool ElfReader::read(char *fileName) {
 		unsigned char initRamSectionNumber = 0;
 
 		
-
 		for (int i = 0; i < header.e_shnum; i++) {
-			printf("Section %i\n", i);
 			memcpy(&sections[i], &megaFile[header.e_shoff + i * sizeof(Elf32Section)], sizeof(Elf32Section));
-			printf("%i - %i %i %i %i\n", i, sections[i].sh_name, sections[i].sh_offset, sections[i].sh_type, sections[i].sh_offset);
 			if (i == nameTable) {
 				namesSection = &sections[i];
 			}
 		}
 
-		printf("parsing file\n");
 		//parsing file
 		for (int i = 0; i < header.e_shnum; i++) {
 			if (sections[i].sh_type != 0) {
-				printf("SECTION %i %i %i\n", i, namesSection->sh_offset, sections[i].sh_name);
 				char buff[128];
 				strcpy(buff, &megaFile[namesSection->sh_offset + sections[i].sh_name]);
-				printf("parsing %i - %s (type %i, size %i, shift %i)\n", i, buff, sections[i].sh_type, sections[i].sh_size, sections[i].sh_offset);
 
 				//program section
 				if (sections[i].sh_type == 1 && strcmp(buff, ".text") == 0) {
-					printf("- Program Code\n");
 					fileCodeSize = sections[i].sh_size;
 					fileCode = new unsigned char[fileCodeSize];
 					memcpy(fileCode, &megaFile[sections[i].sh_offset], fileCodeSize);
@@ -159,7 +151,6 @@ bool ElfReader::read(char *fileName) {
 
 				//rodata section
 				if (sections[i].sh_type == 1 && buff[1] == 'r'  && buff[2] == 'o'  && buff[3] == 'd'  && buff[4] == 'a'  && buff[5] == 't'  && buff[6] == 'a') {
-					printf("- Rodata\n");
 					unsigned int newRodataSize = sections[i].sh_size;
 					unsigned char *newFileRodata = new unsigned char[fileRodataSize + newRodataSize];
 					if (fileRodata) {
@@ -176,7 +167,6 @@ bool ElfReader::read(char *fileName) {
 
 				//initialized ram section
 				if (sections[i].sh_type == 1 && strcmp(buff, ".data") == 0) {
-					printf("- Initialized data %i\n", sections[i].sh_size);
 					fileRamSize = sections[i].sh_size;
 					fileRam = new unsigned char[fileRamSize];
 					memcpy(fileRam, &megaFile[sections[i].sh_offset], fileRamSize);
@@ -185,25 +175,21 @@ bool ElfReader::read(char *fileName) {
 
 				//zero ram section
 				if (sections[i].sh_type == 8 && strcmp(buff, ".bss") == 0) {
-					printf("- Zero initialized data %i\n", sections[i].sh_size);
 					fileZeroRamSize = sections[i].sh_size;
 					zeroRamSectionNumber = i;
 				}
 				
 				if (sections[i].sh_type == 9 && buff[0] == '.' && buff[1] == 'r' && buff[2] == 'e' && buff[3] == 'l') {
 					int count = sections[i].sh_size / sections[i].sh_entsize;
-					printf("- Relocation %i %i %i %i\n", sections[i].sh_entsize, sections[i].sh_info, sections[i].sh_link, count);
 					char *forWhat = buff + 1;
 					while (*forWhat != '.' && *forWhat != 0) forWhat++;
 					if (strlen(forWhat)) {
 						if (strcmp(forWhat, ".text") == 0) {
-							printf("For text\n");
 							reallocCodeCount = count;
 							reallocCode = new Elf32Rel[reallocCodeCount];
 							memcpy(reallocCode, &megaFile[sections[i].sh_offset], sizeof(Elf32Rel)*reallocCodeCount);
 						}
 						if (strcmp(forWhat, ".data") == 0) {
-							printf("For data\n");
 							reallocRamCount = count;
 							reallocRam = new Elf32Rel[reallocRamCount];
 							memcpy(reallocRam, &megaFile[sections[i].sh_offset], sizeof(Elf32Rel)*reallocRamCount);
@@ -213,7 +199,6 @@ bool ElfReader::read(char *fileName) {
 
 				if (sections[i].sh_type == 2 && strcmp(buff, ".symtab") == 0) {
 					symsCount = sections[i].sh_size / sections[i].sh_entsize;
-					printf("Sym table %i %i %i %i\n", sections[i].sh_entsize, sections[i].sh_info, sections[i].sh_link, symsCount);
 					syms = new Elf32Sym[symsCount];
 					memcpy(syms, &megaFile[sections[i].sh_offset], sizeof(Elf32Sym)*symsCount);
 				}
@@ -240,7 +225,6 @@ bool ElfReader::read(char *fileName) {
 
 		//saving symbols
 		if (symsCount && header.e_type == ELF_TYPE_OBJECT) {
-			printf("Symbol parsing\n");
 			for (int i = 0; i < symsCount; i++) {
 				Symbol *newSym = new Symbol();
 				newSym->name = syms[i].st_name ? strdup(&megaFile[namesSection->sh_offset + syms[i].st_name]) : 0;
@@ -255,8 +239,6 @@ bool ElfReader::read(char *fileName) {
 				newSym->value = syms[i].st_value;
 				newSym->sectionType = SECTION_TYPE_NONE;
 				newSym->inSectionShift = 0;
-
-				printf("symbol %i - %s %i %i %i %i, %i %i %i\n", i, newSym->name, newSym->bind, newSym->type, newSym->size, newSym->value, newSym->sectionType, syms[i].st_other, syms[i].st_shndx);
 
 				if (syms[i].st_shndx) {
 					if (syms[i].st_shndx == codeSectionNumber)
@@ -283,7 +265,6 @@ bool ElfReader::read(char *fileName) {
 						for (int r = 0; r < reallocCodeCount; r++) {
 							int index = (reallocCode[r].r_sym_index >> 8) + (reallocCode[r].r1 << 16);
 							if (index == i) {
-								printf("relocation code %i - %i, %i\n", r, reallocCode[r].r_offset, codeSize);
 								Relocation *rel = new Relocation();
 								rel->symbol = newSym;
 								rel->offset = reallocCode[r].r_offset + codeSize;
@@ -297,7 +278,6 @@ bool ElfReader::read(char *fileName) {
 						for (int r = 0; r < reallocRamCount; r++) {
 							int index = (reallocRam[r].r_sym_index >> 8) + (reallocRam[r].r1 << 16);
 							if (index == i) {
-								printf("relocation ram %s %i - %i, %i, %i\n", newSym->name, r, reallocRam[r].r_offset, codeSize, newSym->sectionType);
 								Relocation *rel = new Relocation();
 								rel->symbol = newSym;
 								rel->offset = reallocRam[r].r_offset + codeSize;
