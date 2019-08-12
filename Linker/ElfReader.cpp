@@ -58,6 +58,7 @@ ElfReader::ElfReader()
 	ram = new unsigned char[8 * 1024 * 1024];
 	ramSize = 0;
 	zeroRamSize = 0;
+	elfType = 0;
 }
 
 ElfReader::~ElfReader()
@@ -139,7 +140,8 @@ bool ElfReader::read(char *fileName) {
 		for (int i = 0; i < header.e_shnum; i++) {
 			if (sections[i].sh_type != 0) {
 				char buff[128];
-				strcpy(buff, &megaFile[namesSection->sh_offset + sections[i].sh_name]);
+				buff[0] = 0;
+				if (namesSection) strcpy(buff, &megaFile[namesSection->sh_offset + sections[i].sh_name]);
 
 				//program section
 				if (sections[i].sh_type == 1 && strcmp(buff, ".text") == 0) {
@@ -224,7 +226,7 @@ bool ElfReader::read(char *fileName) {
 		printf("\n");
 
 		//saving symbols
-		if (symsCount && header.e_type == ELF_TYPE_OBJECT) {
+		if (namesSection && symsCount && header.e_type == ELF_TYPE_OBJECT) {
 			for (int i = 0; i < symsCount; i++) {
 				Symbol *newSym = new Symbol();
 				newSym->name = syms[i].st_name ? strdup(&megaFile[namesSection->sh_offset + syms[i].st_name]) : 0;
@@ -297,7 +299,7 @@ bool ElfReader::read(char *fileName) {
 		if (fileCodeSize) {
 			memcpy(code + codeSize, fileCode, fileCodeSize);
 			codeSize += fileCodeSize;
-			delete fileCode;
+			delete [] fileCode;
 		}
 
 		//coping new rom
@@ -311,7 +313,7 @@ bool ElfReader::read(char *fileName) {
 		if (fileRamSize) {
 			memcpy(&ram[ramSize], fileRam, fileRamSize);
 			ramSize += fileRamSize;
-			delete fileRam;
+			delete [] fileRam;
 		}
 
 		//setting up zero ram size

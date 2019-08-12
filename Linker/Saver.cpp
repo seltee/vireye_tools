@@ -1,5 +1,5 @@
 #include "Saver.h"
-#include <string.h>
+#include <string>
 
 #define VERSION 1
 #define SUB_VERSION 0
@@ -8,21 +8,24 @@
 std::string coreFunctions[] = {
 	"setLineClear",
 	"setFillColor",
-	"setSpriteMemory",
+	"setSpriteLimit",
 	"displaySprite",
 	"displaySpriteBitMask",
 	"displaySpriteByteMask",
 	"displaySpriteMatrix",
+	"displayFilledRect",
+	"displayRect",
 	"displayText",
 	"sync",
 	"setFPS",
 	"setPalette",
+	"disableGraphics",
 	"getButtonState",
 	"getXAxis",
 	"getYAxis",
-	"setFSMemory",
 	"readDir",
 	"readNextFile",
+	"closeDir",
 	"openToRead",
 	"openToWrite",
 	"readFile",
@@ -34,6 +37,12 @@ std::string coreFunctions[] = {
 	"getConfig",
 	"applyConfig",
 	"saveConfig",
+	"getTimer",
+	"getTimerWithClear",
+	"clearTimer",
+	"malloc",
+	"free",
+	"getFreeMem",
 	"cmp",
 	"itoa",
 	"run",
@@ -45,12 +54,17 @@ std::string coreFunctions[] = {
 	"__modsi3",
 	"__udivsi3",
 	"__divsi3",
+	"_Unwind_Resume",
+	"_Znwj",	// new[unsigned int]
+	"_ZdlPv",	// delete
 };
 
 const int coreFunctionCount = sizeof(coreFunctions) / sizeof(std::string);
 
 Saver::Saver()
 {
+	symNameSize = 0;
+	symNameTable = 0;
 }
 
 Saver::~Saver()
@@ -68,7 +82,7 @@ Symbol *Saver::findSymbol(Relocation *rel, ElfReader *reader) {
 	}
 	if (!foundedSym && rel->symbol->bind == 1) {
 		for (int c = 0; c < coreFunctionCount; c++) {
-			if (strcmp(coreFunctions[c].c_str(), rel->symbol->name) == 0) {
+			if (rel->symbol->name && strcmp(coreFunctions[c].c_str(), rel->symbol->name) == 0) {
 				foundedSym = rel->symbol;
 			}
 		}
