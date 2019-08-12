@@ -16,6 +16,8 @@ std::string coreFunctions[] = {
 	"displayFilledRect",
 	"displayRect",
 	"displayText",
+	"getSpriteLimit",
+	"getSpriteCash",
 	"sync",
 	"setFPS",
 	"setPalette",
