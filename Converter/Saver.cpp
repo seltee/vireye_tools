@@ -8,7 +8,6 @@ void Saver::save(Pallete* pallete, std::vector<Image*>* images) {
 	fopen_s(&header, "pallete.h", "w");
 	fopen_s(&source, "pallete.c", "w");
 	
-
 	if (header && source) {
 		char* buffer1 = new char[SAVE_BUFFER_SIZE];
 		char* buffer2 = new char[SAVE_BUFFER_SIZE];

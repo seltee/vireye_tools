@@ -22,6 +22,8 @@ std::string coreFunctions[] = {
 	"setFPS",
 	"setPalette",
 	"disableGraphics",
+	"setPreProcessCallback",
+	"setPostProcessCallback",
 	"getButtonState",
 	"getXAxis",
 	"getYAxis",
